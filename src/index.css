@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+/* Samma design-tokens som Ruttbot (dark), anpassat för plockning */
+:root {
+  --background: 220 15% 5%;
+  --foreground: 0 0% 95%;
+  --card: 220 15% 8%;
+  --card-foreground: 0 0% 95%;
+  --primary: 142 71% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 15% 13%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 220 15% 13%;
+  --muted-foreground: 220 10% 50%;
+  --accent: 220 15% 16%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 15% 15%;
+  --input: 220 15% 15%;
+  --ring: 142 71% 45%;
+  --radius: 0.75rem;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar som Ruttbot */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}

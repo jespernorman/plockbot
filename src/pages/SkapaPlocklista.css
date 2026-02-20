@@ -1,0 +1,676 @@
+.skapa-page {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  box-sizing: border-box;
+}
+
+.skapa-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.skapa-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: hsl(var(--foreground));
+}
+
+.skapa-tagline {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.skapa-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.05);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.skapa-card::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: hsl(var(--primary) / 0.25);
+  margin: -1.25rem -1.5rem 1rem -1.5rem;
+}
+
+.skapa-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: hsl(var(--card-foreground));
+}
+
+.skapa-card .muted {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+  margin: 0 0 1rem 0;
+}
+
+.skapa-upload-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.skapa-upload-row .upload-area {
+  flex: 1;
+  min-width: 160px;
+}
+
+.upload-area {
+  position: relative;
+  border: 2px dashed hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background));
+  cursor: pointer;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.upload-area:hover {
+  border-color: hsl(var(--input));
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.upload-area--has-file {
+  border-style: solid;
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.upload-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.upload-icon {
+  font-size: 2rem;
+}
+
+.upload-text {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.upload-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.upload-file-name {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+
+.upload-file-size {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.upload-remove {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.upload-remove:hover {
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive));
+}
+
+.skapa-loading {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.skapa-error {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: hsl(var(--destructive));
+}
+
+.skapa-warning-box {
+  border-color: hsl(38 92% 50% / 0.6);
+  background: hsl(38 92% 50% / 0.08);
+}
+
+.skapa-warning-box strong {
+  color: hsl(var(--foreground));
+}
+
+.skapa-warning-box {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.skapa-warning-box .skapa-warning-link {
+  font-weight: 600;
+  text-decoration: underline;
+  color: hsl(var(--primary));
+}
+.skapa-warning-box .skapa-warning-link:hover {
+  text-decoration: none;
+}
+
+.skapa-preview {
+  margin-bottom: 1rem;
+  max-height: 400px;
+  overflow: auto;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid hsl(var(--border));
+}
+
+.skapa-order {
+  margin-bottom: 1.5rem;
+}
+
+.skapa-order:last-child {
+  margin-bottom: 0;
+}
+
+.skapa-order h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  padding: 0 1rem;
+  color: hsl(var(--foreground));
+}
+
+.skapa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.skapa-table th,
+.skapa-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.skapa-table th {
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.3);
+}
+
+.skapa-table .th-check,
+.skapa-table .td-check {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.skapa-table .td-check input[type="checkbox"] {
+  cursor: pointer;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.skapa-table td {
+  color: hsl(var(--foreground));
+}
+
+.skapa-table tbody tr:hover {
+  background: hsl(var(--accent) / 0.5);
+}
+
+/* ----- Resultat + tydlig nedladdningsknapp ----- */
+.skapa-result-section {
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.06) 0%, hsl(var(--card)) 100%);
+  border-color: hsl(var(--primary) / 0.25);
+}
+
+.skapa-result-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.skapa-result-summary h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: hsl(var(--card-foreground));
+}
+
+.skapa-result-stats {
+  margin: 0;
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.skapa-download-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  box-shadow: 0 2px 8px -2px hsl(var(--primary) / 0.4);
+}
+
+.skapa-download-primary:hover {
+  background: hsl(var(--primary) / 0.92);
+  box-shadow: 0 4px 16px -4px hsl(var(--primary) / 0.45);
+}
+
+.skapa-download-primary:active {
+  transform: scale(0.98);
+}
+
+.skapa-download-primary__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.skapa-download-secondary-wrap {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.8);
+  text-align: center;
+}
+
+.skapa-download-secondary {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.35);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.skapa-download-secondary:hover {
+  background: hsl(var(--primary) / 0.18);
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+/* Legacy primary button (kept for consistency) */
+.skapa-download {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.skapa-download:hover {
+  background: hsl(var(--primary) / 0.9);
+  box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+}
+
+.skapa-download:active {
+  transform: scale(0.98);
+}
+
+.skapa-pdf-preview {
+  margin-top: 1rem;
+}
+
+.skapa-pdf-preview-summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  color: hsl(var(--card-foreground));
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+.skapa-pdf-preview-summary::-webkit-details-marker {
+  display: none;
+}
+
+.skapa-pdf-preview-summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.skapa-pdf-preview[open] .skapa-pdf-preview-summary::before {
+  transform: rotate(90deg);
+}
+
+.skapa-pdf-iframe {
+  width: 100%;
+  height: 720px;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--muted) / 0.2);
+}
+
+/* ----- Digital plocklista (Ruttbot-stil) + swipe ----- */
+.skapa-digital-section {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skapa-digital-section__head {
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.skapa-digital-section__head h2 {
+  margin-bottom: 0.25rem;
+}
+
+.skapa-digital-section__head .muted {
+  margin-bottom: 0;
+}
+
+.plock-carousel {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  gap: 0;
+  padding: 0.5rem 0 0.5rem;
+  margin: 0;
+  scrollbar-width: none;
+}
+
+.plock-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* En sida (en order) i taget – varje kort tar hela carousel-bredden, kan inte krympa */
+.plock-carousel > * {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.plock-carousel > .plock-card {
+  flex: 0 0 100%;
+  min-width: 100%;
+}
+
+.plock-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-height: 0;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 4px 20px -8px hsl(0 0% 0% / 0.4);
+}
+
+.plock-card__strip {
+  height: 4px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(142 71% 38%));
+}
+
+.plock-card__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem 0.4rem;
+}
+
+.plock-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.plock-card__order-nr {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.plock-card__delivery {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 1.25rem 0.5rem;
+  line-height: 1.35;
+}
+
+.plock-card__order-info {
+  flex-shrink: 0;
+  margin: 0 1.25rem 0.5rem;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.4;
+}
+
+.plock-card__order-info-block {
+  margin-bottom: 0.25rem;
+}
+
+.plock-card__order-info-line {
+  margin-bottom: 0.15rem;
+}
+
+.plock-card__order-info-line:last-child {
+  margin-bottom: 0;
+}
+
+.plock-card__order-info-row {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.plock-card__table-wrap {
+  flex: 0 0 auto;
+  max-height: 65vh;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding: 0 0 0.75rem;
+  min-height: 0;
+}
+
+.plock-card__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.plock-card__table th,
+.plock-card__table td {
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+}
+
+.plock-card__table th {
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.25);
+}
+
+.plock-card__th-num,
+.plock-card__num {
+  text-align: right;
+  width: 2.5rem;
+}
+
+.plock-card__th-lev {
+  min-width: 5rem;
+}
+
+.plock-card__lev {
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.plock-card__th-check,
+.plock-card__check {
+  width: 2.25rem;
+  text-align: center;
+  padding-left: 0;
+}
+
+.plock-card__check input[type="checkbox"] {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  accent-color: hsl(var(--primary));
+}
+
+.plock-card__code {
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+.plock-card__desc {
+  color: hsl(var(--card-foreground));
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plock-card__table tbody tr:hover {
+  background: hsl(var(--accent) / 0.4);
+}
+
+/* Carousel navigation */
+.plock-carousel-nav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.plock-carousel-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.plock-carousel-btn:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.9);
+}
+
+.plock-carousel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.plock-carousel-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.plock-carousel-dots {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.plock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: hsl(var(--muted));
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.plock-dot:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+.plock-dot--active {
+  background: hsl(var(--primary));
+  transform: scale(1.25);
+}

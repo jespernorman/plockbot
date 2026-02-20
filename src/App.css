@@ -1,0 +1,181 @@
+.app {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: hsl(var(--foreground));
+}
+
+.tagline {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.95rem;
+  margin: 0 0 1rem 0;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.app-nav button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.app-nav button:hover {
+  color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--input));
+  background: hsl(var(--accent));
+}
+
+.app-nav--active {
+  color: hsl(var(--primary-foreground)) !important;
+  border-color: hsl(var(--primary)) !important;
+  background: hsl(var(--primary)) !important;
+}
+
+.app-nav--active:hover {
+  color: hsl(var(--primary-foreground)) !important;
+  background: hsl(var(--primary) / 0.9) !important;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.card {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.05);
+}
+
+.card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: hsl(var(--card-foreground));
+}
+
+.muted {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+/* Upload-område – samma stil som Ruttbot-kort med primary-accent vid drag */
+.upload-area {
+  border: 2px dashed hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background));
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.upload-area:hover {
+  border-color: hsl(var(--input));
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.upload-area--drag {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--foreground));
+}
+
+.upload-area--has-file {
+  border-style: solid;
+  border-color: hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.upload-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-icon {
+  font-size: 2rem;
+}
+
+.upload-text {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.upload-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.upload-file-name {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.upload-file-size {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Knapp – Ruttbot primary / ghost / destructive */
+.upload-remove {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.upload-remove:hover {
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive));
+}
