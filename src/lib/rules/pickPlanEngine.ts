@@ -2,7 +2,7 @@
  * Regelmotor – deterministisk computePickPlan() enligt spec.
  * PORSLIN (KA), GLAS (BA), BESTICK, GRUPPARTIKEL.
  */
-import type { Article, Order, OrderLine, OrderLineWithPickPlan, PickPlan, PlockbotRules } from './types';
+import type { Article, Order, OrderLineWithPickPlan, PickPlan, PlockbotRules } from './types';
 import { normalizeArticleCode } from '../masterdata';
 
 const TRANSPORT_ARTICLE_IDS = ['TR100'];
@@ -72,12 +72,14 @@ function computeKA(
 ): PickPlan {
   const threshold = ka.thresholds?.find(t => t.quantityInCassette === unitSize);
   const pickFullIfAtLeast = threshold?.pickFullCassetteIfOrderedAtLeast ?? 13;
+  const exactMax = threshold?.smallOrderExactMax ?? ka.smallOrderExactMax;
+  const restPercentThreshold = threshold?.restPercentFullCassetteThreshold ?? ka.restPercentFullCassetteThreshold;
 
   if (ordered <= 0) {
     return { articleId, orderedQty: ordered, fullUnitsCount: 0, looseCount: 0, pickQtyTotal: 0, noteText: '0 st' };
   }
 
-  // A) orderedQty ≤ unitSize: först tröskel (≥ threshold → 1 KA), annars exakt upp till smallOrderExactMax
+  // A) orderedQty ≤ unitSize: först tröskel (≥ threshold → 1 KA), annars exakt upp till exactMax
   if (ordered <= unitSize) {
     if (ordered >= pickFullIfAtLeast) {
       return {
@@ -91,7 +93,7 @@ function computeKA(
         noteText: '1 KA',
       };
     }
-    if (ordered <= ka.smallOrderExactMax) {
+    if (ordered <= exactMax) {
       return {
         articleId,
         orderedQty: ordered,
@@ -141,11 +143,11 @@ function computeKA(
     }
   }
 
-  // D) 80%-regel
+  // D) Rest-%-regel: ta hel kassett om rest ≥ tröskel
   let fullUnitsCount = Math.floor(pickBase / unitSize);
   let rest = pickBase % unitSize;
   const restPercent = unitSize > 0 ? (rest / unitSize) * 100 : 0;
-  if (restPercent >= ka.restPercentFullCassetteThreshold && rest > 0) {
+  if (restPercent >= restPercentThreshold && rest > 0) {
     fullUnitsCount += 1;
     rest = 0;
   }
@@ -172,6 +174,8 @@ function computeBA(
 ): PickPlan {
   const threshold = ba.thresholds?.find(t => t.quantityInCrate === unitSize);
   const pickFullIfAtLeast = threshold?.pickFullCrateIfOrderedAtLeast ?? 13;
+  const exactMax = threshold?.smallOrderExactMax ?? ba.smallOrderExactMax;
+  const restPercentThreshold = threshold?.restPercentFullCrateThreshold ?? ba.restPercentFullCrateThreshold;
 
   if (ordered <= 0) {
     return { articleId, orderedQty: ordered, fullUnitsCount: 0, looseCount: 0, pickQtyTotal: 0, noteText: '0 st' };
@@ -190,7 +194,7 @@ function computeBA(
         noteText: '1 BA',
       };
     }
-    if (ordered <= ba.smallOrderExactMax) {
+    if (ordered <= exactMax) {
       return {
         articleId,
         orderedQty: ordered,
@@ -241,7 +245,7 @@ function computeBA(
   let fullUnitsCount = Math.floor(pickBase / unitSize);
   let rest = pickBase % unitSize;
   const restPercent = unitSize > 0 ? (rest / unitSize) * 100 : 0;
-  if (restPercent >= ba.restPercentFullCrateThreshold && rest > 0) {
+  if (restPercent >= restPercentThreshold && rest > 0) {
     fullUnitsCount += 1;
     rest = 0;
   }
@@ -266,8 +270,8 @@ function computeBESTICK(
   articleId: string
 ): PickPlan {
   let pickQtyTotal = ordered;
-  if (ordered < bestick.exactBelow) {
-    // exakt
+  if (ordered <= bestick.exactBelow) {
+    // exakt (50 eller färre enligt spec)
   } else {
     for (const r of bestick.ranges) {
       if (ordered >= r.minOrdered && ordered <= r.maxOrdered) {

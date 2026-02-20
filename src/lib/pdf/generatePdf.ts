@@ -4,15 +4,7 @@
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { PageRowPositions } from './parsePdf';
-
-export interface OrderLineWithPickPlan {
-  articleCode: string;
-  description: string;
-  orderedQty: number;
-  noteText: string;
-  pickQtyTotal: number;
-  checked?: boolean;
-}
+import type { OrderLineWithPickPlan } from '../rules/types';
 
 export interface OrderMeta {
   orderId?: string;
@@ -41,7 +33,6 @@ const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 
 function drawText(page: any, font: any, text: string, x: number, y: number, size: number = FONT_SIZE) {
-  const maxW = 200;
   if (text.length > 35) text = text.slice(0, 32) + '...';
   page.drawText(text, { x, y, size, font });
 }

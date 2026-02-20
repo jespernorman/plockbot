@@ -11,15 +11,17 @@ export function computeInstruction(
 ): string {
   if (!article) return String(orderedQty);
 
-  switch (article.type) {
-    case 'STYCK':
+  if (article.isGroupHeader) return '';
+
+  const quantityPerUnit = article.ka ?? article.ba;
+
+  switch (article.category) {
+    case 'ANNAT':
       return String(orderedQty);
-    case 'GRUPPARTIKEL':
-      return ''; // Fylls på paketmedlemmar
-    case 'KA':
-      return computeKA(orderedQty, article.quantityPerUnit ?? rules.ka.defaultQuantityPerCassette, rules.ka);
-    case 'BA':
-      return computeBA(orderedQty, article.quantityPerUnit ?? rules.ba.defaultQuantityPerCrate, rules.ba);
+    case 'PORSLIN':
+      return computeKA(orderedQty, quantityPerUnit ?? rules.ka.defaultQuantityPerCassette, rules.ka);
+    case 'GLAS':
+      return computeBA(orderedQty, quantityPerUnit ?? rules.ba.defaultQuantityPerCrate, rules.ba);
     case 'BESTICK':
       return computeBESTICK(orderedQty, rules.bestick);
     default:

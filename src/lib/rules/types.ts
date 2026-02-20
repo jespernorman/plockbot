@@ -29,10 +29,14 @@ export function articleName(a: Article): string {
   return a.name;
 }
 
-/** Tröskel: plocka full enhet om beställt >= X. */
+/** Tröskel per kassettstorlek: exakt upp till X, sedan 1 kassett om beställt ≥ Y, rest-% för att ta hel kassett. */
 export interface KAThreshold {
   quantityInCassette: number;
   pickFullCassetteIfOrderedAtLeast: number;
+  /** Beställning ≤ denna → plocka exakt antal. (Om utelämnad används ka.smallOrderExactMax.) */
+  smallOrderExactMax?: number;
+  /** Rest i % av kassett: om rest ≥ denna, ta extra hel kassett. (Om utelämnad används ka.restPercentFullCassetteThreshold.) */
+  restPercentFullCassetteThreshold?: number;
 }
 
 export interface KARules {
@@ -48,9 +52,14 @@ export interface KARules {
   thresholds?: KAThreshold[];
 }
 
+/** Tröskel per backstorlek: exakt upp till X, sedan 1 back om beställt ≥ Y, rest-% för att ta hel back. */
 export interface BAThreshold {
   quantityInCrate: number;
   pickFullCrateIfOrderedAtLeast: number;
+  /** Beställning ≤ denna → plocka exakt antal. (Om utelämnad används ba.smallOrderExactMax.) */
+  smallOrderExactMax?: number;
+  /** Rest i % av back: om rest ≥ denna, ta extra hel back. (Om utelämnad används ba.restPercentFullCrateThreshold.) */
+  restPercentFullCrateThreshold?: number;
 }
 
 export interface BARules {
@@ -102,6 +111,11 @@ export interface OrderLine {
   articleCode: string;
   description: string;
   orderedQty: number;
+}
+
+/** Legacy: rad med beräknad instruktionstext (ruleEngine). */
+export interface OrderLineWithInstruction extends OrderLine {
+  instruction: string;
 }
 
 export interface Order {

@@ -19,11 +19,21 @@ export function loadRules(): PlockbotRules {
 }
 
 function mergeWithDefaults(partial: Partial<PlockbotRules>): PlockbotRules {
-  return {
-    ka: { ...defaultPlockbotRules.ka, ...partial.ka },
-    ba: { ...defaultPlockbotRules.ba, ...partial.ba },
-    bestick: { ...defaultPlockbotRules.bestick, ...partial.bestick },
-  };
+  const ka = { ...defaultPlockbotRules.ka, ...partial.ka };
+  const ba = { ...defaultPlockbotRules.ba, ...partial.ba };
+  if (ka.thresholds && defaultPlockbotRules.ka.thresholds) {
+    ka.thresholds = ka.thresholds.map(t => {
+      const def = defaultPlockbotRules.ka.thresholds!.find(d => d.quantityInCassette === t.quantityInCassette);
+      return def ? { ...def, ...t } : t;
+    });
+  }
+  if (ba.thresholds && defaultPlockbotRules.ba.thresholds) {
+    ba.thresholds = ba.thresholds.map(t => {
+      const def = defaultPlockbotRules.ba.thresholds!.find(d => d.quantityInCrate === t.quantityInCrate);
+      return def ? { ...def, ...t } : t;
+    });
+  }
+  return { ka, ba, bestick: { ...defaultPlockbotRules.bestick, ...partial.bestick } };
 }
 
 export function saveRules(rules: PlockbotRules): void {

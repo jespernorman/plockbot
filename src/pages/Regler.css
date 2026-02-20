@@ -758,10 +758,17 @@
   gap: 0.5rem;
 }
 
-.regler-margins {
+.regler-margins,
+.regler-margins-minimal {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px dashed hsl(var(--border));
+}
+
+.regler-margins-minimal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .regler-margins .regler-threshold-row input:first-of-type {

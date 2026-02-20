@@ -3,7 +3,7 @@
  * Om detta test faller visar appen bara "X st" istället för kassetter/backar.
  */
 import { describe, it, expect } from 'vitest';
-import type { Article, Order } from './types';
+import type { Article, Order, OrderLineWithPickPlan } from './types';
 import { defaultPlockbotRules } from './defaultRules';
 import { applyRulesToOrders } from './pickPlanEngine';
 import { articlesByCodeMap } from '../masterdata';
@@ -34,7 +34,7 @@ describe('Appen räknar och följer reglerna', () => {
     const result = applyRulesToOrders(orders, articlesByCode, rules);
 
     expect(result).toHaveLength(1);
-    const lines = result[0].lines;
+    const lines: OrderLineWithPickPlan[] = result[0].lines;
     expect(lines).toHaveLength(4);
 
     const p202 = lines.find(l => l.articleCode === 'P202');
@@ -70,7 +70,7 @@ describe('Appen räknar och följer reglerna', () => {
       },
     ];
     const result = applyRulesToOrders(orders, articlesByCodeMap(articles), defaultPlockbotRules);
-    const lines = result[0].lines;
+    const lines: OrderLineWithPickPlan[] = result[0].lines;
 
     console.log('\n--- Så räknar reglerna (Best → LEV. ANTAL) ---');
     lines.forEach(l => {
