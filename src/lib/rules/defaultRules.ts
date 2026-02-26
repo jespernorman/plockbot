@@ -1,16 +1,26 @@
 import type { PlockbotRules } from './types';
 
 /**
- * Standardregler enligt kundens spec.
- * Porslin: 10/15/20/25/30 à KA med småbeställning, 1 kassett-intervall, säkerhetsmarginaler, rest-%-regel.
- * Glas: 16/25/36/49/64/98 à BA, samma logik.
- * Bestick: ≤50 exakt, 51–150 +3, 151–300 +5, 301+ +10.
+ * Grundregler enligt kundens spec. Används varje gång om inga sparade regler finns.
+ *
+ * GLAS (BA) 16 à BA:
+ * - Små ≤16: ≤12 exakt, 13–16 → 1 hel back (16)
+ * - Säkerhetsmarginal: 17–49 +0, 50–149 +3, 150–299 +5, 300–499 +8, 500+ avrunda upp till hel back
+ * - 50 %-regel: rest ≥ 50 % av back → ta extra hel back
+ *
+ * PORSLIN (KA) 10 à KA:
+ * - Små ≤10: plocka exakt antal tallrikar
+ * - Säkerhetsmarginal: 11–49 +0, 50–149 +3, 150–299 +5, 300–499 +8, 500+ avrunda upp till hel kassett
+ * - 50 %-regel: rest ≥ 50 % av kassett → ta extra hel kassett
+ *
+ * BESTICK:
+ * - ≤50 exakt, 51–150 +3, 151–300 +5, 301+ +10
  */
 export const defaultPlockbotRules: PlockbotRules = {
   ka: {
-    defaultQuantityPerCassette: 25,
-    smallOrderExactMax: 20,
-    smallOrderOneCassetteUpTo: 25,
+    defaultQuantityPerCassette: 10,
+    smallOrderExactMax: 10,
+    smallOrderOneCassetteUpTo: 10,
     margins: [
       { maxOrdered: 49, extra: 0 },
       { maxOrdered: 149, extra: 3 },
@@ -19,19 +29,20 @@ export const defaultPlockbotRules: PlockbotRules = {
     ],
     largeOrderRoundUpFrom: 500,
     largeOrderExtraUnits: 0,
-    restPercentFullCassetteThreshold: 80,
+    restPercentFullCassetteThreshold: 50,
     thresholds: [
-      { quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 },
-      { quantityInCassette: 15, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 60 },
-      { quantityInCassette: 20, pickFullCassetteIfOrderedAtLeast: 17, smallOrderExactMax: 16, restPercentFullCassetteThreshold: 70 },
-      { quantityInCassette: 25, pickFullCassetteIfOrderedAtLeast: 21, smallOrderExactMax: 20, restPercentFullCassetteThreshold: 80 },
-      { quantityInCassette: 30, pickFullCassetteIfOrderedAtLeast: 26, smallOrderExactMax: 25, restPercentFullCassetteThreshold: 90 },
+      {
+        quantityInCassette: 10,
+        pickFullCassetteIfOrderedAtLeast: 11,
+        smallOrderExactMax: 10,
+        restPercentFullCassetteThreshold: 50,
+      },
     ],
   },
   ba: {
-    defaultQuantityPerCrate: 25,
-    smallOrderExactMax: 20,
-    smallOrderOneCrateUpTo: 25,
+    defaultQuantityPerCrate: 16,
+    smallOrderExactMax: 12,
+    smallOrderOneCrateUpTo: 16,
     margins: [
       { maxOrdered: 49, extra: 0 },
       { maxOrdered: 149, extra: 3 },
@@ -40,14 +51,14 @@ export const defaultPlockbotRules: PlockbotRules = {
     ],
     largeOrderRoundUpFrom: 500,
     largeOrderExtraUnits: 0,
-    restPercentFullCrateThreshold: 90,
+    restPercentFullCrateThreshold: 50,
     thresholds: [
-      { quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 },
-      { quantityInCrate: 25, pickFullCrateIfOrderedAtLeast: 21, smallOrderExactMax: 20, restPercentFullCrateThreshold: 80 },
-      { quantityInCrate: 36, pickFullCrateIfOrderedAtLeast: 31, smallOrderExactMax: 30, restPercentFullCrateThreshold: 90 },
-      { quantityInCrate: 49, pickFullCrateIfOrderedAtLeast: 41, smallOrderExactMax: 40, restPercentFullCrateThreshold: 90 },
-      { quantityInCrate: 64, pickFullCrateIfOrderedAtLeast: 56, smallOrderExactMax: 55, restPercentFullCrateThreshold: 90 },
-      { quantityInCrate: 98, pickFullCrateIfOrderedAtLeast: 86, smallOrderExactMax: 85, restPercentFullCrateThreshold: 90 },
+      {
+        quantityInCrate: 16,
+        pickFullCrateIfOrderedAtLeast: 13,
+        smallOrderExactMax: 12,
+        restPercentFullCrateThreshold: 50,
+      },
     ],
   },
   bestick: {

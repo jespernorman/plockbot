@@ -417,7 +417,11 @@ export default function SkapaPlocklista() {
                           <td className="plock-card__desc">{line.description || '—'}</td>
                           <td className="plock-card__num">{line.orderedQty}</td>
                           <td className="plock-card__lev">
-                            <strong>{line.noteText}</strong>
+                            <span className="plock-card__lev-box">
+                              {line.noteText && String(line.noteText).trim() !== '—'
+                                ? line.noteText
+                                : (line.orderedQty != null ? String(line.orderedQty) : '—')}
+                            </span>
                           </td>
                           <td className="plock-card__check">
                             <input

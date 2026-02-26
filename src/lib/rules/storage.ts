@@ -5,7 +5,43 @@ const RULES_KEY = 'plockbot_rules';
 const ARTICLES_KEY = 'plockbot_articles';
 const TYPE_COLUMN_OVERRIDE_KEY = 'plockbot_type_column';
 const ARTICLE_RAW_ROWS_KEY = 'plockbot_article_raw_rows';
+const COMPANY_ID_KEY = 'plockbot_company_id';
 const MAX_PERSISTED_ROWS = 2000;
+
+/** Backend-URL för Plockbot API (Spara/Hämta regler till Supabase). Sätt t.ex. VITE_PLOCKBOT_API_URL eller VITE_BACKEND_URL. */
+function getApiBaseUrl(): string | null {
+  if (typeof import.meta.env?.VITE_PLOCKBOT_API_URL === 'string' && import.meta.env.VITE_PLOCKBOT_API_URL) {
+    return import.meta.env.VITE_PLOCKBOT_API_URL.replace(/\/$/, '');
+  }
+  if (typeof import.meta.env?.VITE_BACKEND_URL === 'string' && import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '');
+  }
+  return null;
+}
+
+/** company_id som skickas till API (per företag). Kan sättas via URL ?companyId= eller localStorage. */
+export function getPlockbotCompanyId(): string {
+  if (typeof window === 'undefined') return 'default';
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('companyId') ?? params.get('company_id');
+  if (fromUrl) return fromUrl;
+  try {
+    const fromStorage = localStorage.getItem(COMPANY_ID_KEY);
+    if (fromStorage) return fromStorage;
+  } catch {
+    // ignore
+  }
+  return 'default';
+}
+
+export function setPlockbotCompanyId(companyId: string | null): void {
+  try {
+    if (companyId == null) localStorage.removeItem(COMPANY_ID_KEY);
+    else localStorage.setItem(COMPANY_ID_KEY, companyId);
+  } catch {
+    // ignore
+  }
+}
 
 export function loadRules(): PlockbotRules {
   try {
@@ -15,6 +51,22 @@ export function loadRules(): PlockbotRules {
     return mergeWithDefaults(parsed);
   } catch {
     return defaultPlockbotRules;
+  }
+}
+
+/** Hämtar regler från Supabase (backend). Returnerar null om API inte är konfigurerat eller misslyckas. */
+export async function loadRulesFromApi(): Promise<PlockbotRules | null> {
+  const base = getApiBaseUrl();
+  if (!base) return null;
+  try {
+    const companyId = getPlockbotCompanyId();
+    const res = await fetch(`${base}/api/plockbot/rules?companyId=${encodeURIComponent(companyId)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.success || data.rules == null) return null;
+    return mergeWithDefaults(data.rules as Partial<PlockbotRules>);
+  } catch {
+    return null;
   }
 }
 
@@ -36,8 +88,31 @@ function mergeWithDefaults(partial: Partial<PlockbotRules>): PlockbotRules {
   return { ka, ba, bestick: { ...defaultPlockbotRules.bestick, ...partial.bestick } };
 }
 
-export function saveRules(rules: PlockbotRules): void {
-  localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+/**
+ * Sparar regler. Om VITE_PLOCKBOT_API_URL eller VITE_BACKEND_URL är satt sparas till Supabase via backend.
+ * Lokal lagring används alltid som kopia och som fallback om API saknas.
+ * Kastar om API-anropet misslyckas (när API-URL är satt).
+ */
+export async function saveRules(rules: PlockbotRules): Promise<void> {
+  const base = getApiBaseUrl();
+  if (base) {
+    const companyId = getPlockbotCompanyId();
+    const res = await fetch(`${base}/api/plockbot/rules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyId, rules }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || `Spara misslyckades (${res.status})`);
+    }
+  }
+  try {
+    localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+  } catch (e) {
+    if (base) return; // Supabase sparade OK
+    throw e;
+  }
 }
 
 type LegacyArticle = { articleCode?: string; articleName?: string; type?: string; quantityPerUnit?: number };

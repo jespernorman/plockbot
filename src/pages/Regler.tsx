@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import type { Article, ArticleCategory, PlockbotRules } from '../lib/rules/types';
-import { loadRules, saveRules, loadArticles, saveArticles, getTypeColumnOverride, saveArticleRawRows, loadArticleRawRows } from '../lib/rules/storage';
+import { loadRules, saveRules, loadRulesFromApi, loadArticles, saveArticles, getTypeColumnOverride, saveArticleRawRows, loadArticleRawRows } from '../lib/rules/storage';
 import { defaultPlockbotRules } from '../lib/rules/defaultRules';
 import { sheetToRawArticleRows, parseArticleRowsToArticles } from '../lib/masterdata';
 import { saveExcelFile, loadExcelFile, type SavedExcel } from '../lib/excelStorage';
@@ -19,6 +19,7 @@ export default function Regler() {
   const [rules, setRules] = useState<PlockbotRules>(() => loadRules());
   const [articles, setArticles] = useState<Article[]>(() => loadArticles());
   const [saved, setSaved] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<'success' | 'error' | null>(null);
   const [testArticleId, setTestArticleId] = useState('');
   const [testArticleSearch, setTestArticleSearch] = useState('');
   const [testQty, setTestQty] = useState(0);
@@ -30,6 +31,8 @@ export default function Regler() {
   const [newArticleModalOpen, setNewArticleModalOpen] = useState(false);
   const [newArticleDraft, setNewArticleDraft] = useState<Article>(() => ({ id: '', name: '', category: 'ANNAT' }));
   const [packFilter, setPackFilter] = useState<'all' | 'KA' | 'BA' | 'BESTICK' | 'STYCK' | 'GRUPP'>('all');
+  type RulesTab = 'ba' | 'ka' | 'bestick';
+  const [rulesTab, setRulesTab] = useState<RulesTab>('ba');
   const excelInputRef = useRef<HTMLInputElement>(null);
 
   const matchesPackFilter = (a: Article): boolean => {
@@ -142,6 +145,22 @@ export default function Regler() {
     loadExcelFile().then(setSavedExcel).catch(() => setSavedExcel(null));
   }, []);
 
+  // Hämta regler från Supabase vid start (om backend är konfigurerad). Synkar även till localStorage så Skapa plocklista får samma regler.
+  useEffect(() => {
+    let cancelled = false;
+    loadRulesFromApi().then(apiRules => {
+      if (!cancelled && apiRules != null) {
+        setRules(apiRules);
+        try {
+          localStorage.setItem('plockbot_rules', JSON.stringify(apiRules));
+        } catch {
+          // ignore
+        }
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   useEffect(() => {
     if (!savedExcel || articles.length > 0) return;
     let cancelled = false;
@@ -171,17 +190,33 @@ export default function Regler() {
     return () => { cancelled = true; };
   }, [savedExcel]);
 
-  useEffect(() => {
-    saveRules(rules);
-    setSaved(true);
-    const t = setTimeout(() => setSaved(false), 2500);
-    return () => clearTimeout(t);
-  }, [rules]);
+  const handleSaveRules = async () => {
+    try {
+      await saveRules(rules);
+      setSaved(true);
+      setSaveFeedback('success');
+      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (e) {
+      console.error('Spara regler misslyckades:', e);
+      setSaveFeedback('error');
+      setTimeout(() => setSaveFeedback(null), 4000);
+    }
+  };
 
-  const handleSaveRules = () => {
-    saveRules(rules);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleResetRules = async () => {
+    if (!window.confirm('Återställ alla regler till grundinställningarna?')) return;
+    setRules(defaultPlockbotRules);
+    try {
+      await saveRules(defaultPlockbotRules);
+      setSaved(true);
+      setSaveFeedback('success');
+      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaveFeedback(null), 4000);
+    } catch (e) {
+      setSaveFeedback('error');
+      setTimeout(() => setSaveFeedback(null), 4000);
+    }
   };
 
   const testSearchLower = testArticleSearch.trim().toLowerCase();
@@ -308,7 +343,7 @@ export default function Regler() {
                 const ba = articles.filter(a => a.category === 'GLAS' && a.ba).length;
                 const bestick = articles.filter(a => a.category === 'BESTICK').length;
                 const styck = articles.length - ka - ba - bestick;
-                return ` (${ka} KA, ${ba} BA, ${bestick} bestick, ${styck} st)`;
+                return ` (${ka} kassetter, ${ba} backar, ${bestick} bestick, ${styck} st)`;
               })()}
             </span>
           )}
@@ -337,7 +372,7 @@ export default function Regler() {
                   onClick={() => setPackFilter(key)}
                   aria-pressed={packFilter === key}
                 >
-                  {key === 'all' ? 'Alla' : key === 'STYCK' ? 'Styck' : key === 'GRUPP' ? 'Gruppartiklar' : key}
+                  {key === 'all' ? 'Alla' : key === 'KA' ? 'Kassetter' : key === 'BA' ? 'Backar' : key === 'BESTICK' ? 'Bestick' : key === 'STYCK' ? 'Styck' : key === 'GRUPP' ? 'Gruppartiklar' : key}
                 </button>
               ))}
             </div>
@@ -405,7 +440,7 @@ export default function Regler() {
                       min={1}
                       value={editingArticle.draft.ka !== undefined && editingArticle.draft.ka !== null ? String(editingArticle.draft.ka) : ''}
                       onChange={e => setEditingArticle(prev => prev ? { ...prev, draft: { ...prev.draft, ka: e.target.value === '' ? undefined : Number(e.target.value) || undefined } } : null)}
-                      placeholder="25"
+                      placeholder="10"
                       aria-label="Antal per kassett"
                     />
                   </label>
@@ -418,7 +453,7 @@ export default function Regler() {
                       min={1}
                       value={editingArticle.draft.ba !== undefined && editingArticle.draft.ba !== null ? String(editingArticle.draft.ba) : ''}
                       onChange={e => setEditingArticle(prev => prev ? { ...prev, draft: { ...prev.draft, ba: e.target.value === '' ? undefined : Number(e.target.value) || undefined } } : null)}
-                      placeholder="25"
+                      placeholder="16"
                       aria-label="Antal per back"
                     />
                   </label>
@@ -440,7 +475,7 @@ export default function Regler() {
                 ? `${filteredTestArticles.length} av ${filteredByPack.length} träffar`
                 : packFilter === 'all'
                   ? `${articles.length} artiklar – sök på nummer eller namn, klicka för att välja`
-                  : `${filteredByPack.length} artiklar (${packFilter === 'KA' ? 'KA' : packFilter === 'BA' ? 'BA' : packFilter === 'BESTICK' ? 'Bestick' : packFilter === 'STYCK' ? 'Styck' : 'Gruppartiklar'}) – sök på nummer eller namn`}
+                  : `${filteredByPack.length} artiklar (${packFilter === 'KA' ? 'Kassetter' : packFilter === 'BA' ? 'Backar' : packFilter === 'BESTICK' ? 'Bestick' : packFilter === 'STYCK' ? 'Styck' : 'Gruppartiklar'}) – sök på nummer eller namn`}
             </p>
             <div className="regler-article-list-head" aria-hidden="true">
               <span className="regler-article-code">Artikelnummer</span>
@@ -518,73 +553,264 @@ export default function Regler() {
 
       <section className="regler-section">
         <h2>Finjustera regler</h2>
-        <p className="regler-hint regler-hint--short">Minimal redigering: säkerhetsmarginaler (gäller KA &amp; BA), rest-%-standard, bestick. Trösklar per kassett/back enligt spec.</p>
+        <p className="regler-hint regler-hint--short">Reglerna används varje gång du skapar en plocklista. Spara ändringar så gäller de direkt.</p>
 
-        <details className="regler-details" open>
-          <summary>Säkerhetsmarginaler (KA &amp; BA)</summary>
-          <p className="regler-hint regler-hint--short">Om beställt ≤ X st lägg på Y extra. Avrunda till hel enhet från angiven gräns.</p>
-          <div className="regler-margins-minimal">
-            {[0, 1, 2, 3].map(i => {
-              const m = rules.ka.margins[i];
-              const maxOrdered = m?.maxOrdered ?? [49, 149, 299, 499][i];
-              return (
-                <label key={i} className="regler-threshold-row">
-                  <span>≤{maxOrdered} st →</span>
-                  <input type="number" min={0} value={m?.extra ?? 0} onChange={e => {
-                    const extra = Number(e.target.value) || 0;
-                    const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
-                    setRules(r => ({ ...r, ka: { ...r.ka, margins }, ba: { ...r.ba, margins } }));
-                  }} />
-                  <span>extra</span>
-                </label>
-              );
-            })}
-            <label className="regler-threshold-row">
-              <span>Avrunda till hel enhet från (st)</span>
-              <input type="number" min={0} value={rules.ka.largeOrderRoundUpFrom} onChange={e => {
-                const v = Number(e.target.value) || 500;
-                setRules(r => ({ ...r, ka: { ...r.ka, largeOrderRoundUpFrom: v }, ba: { ...r.ba, largeOrderRoundUpFrom: v } }));
-              }} />
-            </label>
-          </div>
-        </details>
+        <div className="regler-tabs" role="tablist" aria-label="Välj regeltyp">
+          <button
+            id="regler-tab-ba"
+            type="button"
+            role="tab"
+            aria-selected={rulesTab === 'ba'}
+            className={`regler-tab ${rulesTab === 'ba' ? 'regler-tab--active' : ''}`}
+            onClick={() => setRulesTab('ba')}
+          >
+            Glas (BA)
+          </button>
+          <button
+            id="regler-tab-ka"
+            type="button"
+            role="tab"
+            aria-selected={rulesTab === 'ka'}
+            className={`regler-tab ${rulesTab === 'ka' ? 'regler-tab--active' : ''}`}
+            onClick={() => setRulesTab('ka')}
+          >
+            Porslin (KA)
+          </button>
+          <button
+            id="regler-tab-bestick"
+            type="button"
+            role="tab"
+            aria-selected={rulesTab === 'bestick'}
+            className={`regler-tab ${rulesTab === 'bestick' ? 'regler-tab--active' : ''}`}
+            onClick={() => setRulesTab('bestick')}
+          >
+            Bestick
+          </button>
+        </div>
 
-        <details className="regler-details">
-          <summary>Rest-%-tröskel (standard)</summary>
-          <p className="regler-hint regler-hint--short">När rest nästan blir en hel kassett/back: om rest ≥ denna % ta extra hel enhet. Per kassett-/backstorlek enligt spec; här överskrider du standard.</p>
-          <div className="regler-grid regler-grid--tight">
-            <label><span>KA (%)</span><input type="number" min={0} max={100} value={rules.ka.restPercentFullCassetteThreshold} onChange={e => updateKA({ restPercentFullCassetteThreshold: Number(e.target.value) || 80 })} /></label>
-            <label><span>BA (%)</span><input type="number" min={0} max={100} value={rules.ba.restPercentFullCrateThreshold} onChange={e => updateBA({ restPercentFullCrateThreshold: Number(e.target.value) || 90 })} /></label>
-          </div>
-        </details>
+        {rulesTab === 'ba' && (
+          <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-ba">
+            <h3 className="regler-tab-panel-title">Glas (BA)</h3>
+            <p className="regler-hint regler-hint--short">Definiera en eller flera backstorlekar (t.ex. 16 à BA, 25 à BA). Varje enhet har egna småbeställnings- och rest-regler. Artiklar i Excel med matchande "antal per back" får den enhetens regler.</p>
 
-        <details className="regler-details">
-          <summary>Bestick</summary>
-          <p className="regler-hint regler-hint--short">Exakt till angivet antal; därefter extra per intervall.</p>
-          <div className="regler-margins-minimal">
-            <label className="regler-threshold-row">
-              <span>Exakt till (st)</span>
-              <input type="number" min={0} value={rules.bestick.exactBelow} onChange={e => updateBESTICK({ exactBelow: Number(e.target.value) || 50 })} />
-            </label>
-            {rules.bestick.ranges.map((r, i) => (
-              <label key={i} className="regler-threshold-row">
-                <span>{r.minOrdered}–{r.maxOrdered === Infinity ? '∞' : r.maxOrdered} st →</span>
-                <input type="number" min={0} value={r.extra} onChange={e => updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, extra: Number(e.target.value) || 0 } : x) })} />
-                <span>extra</span>
-              </label>
+            <h4 className="regler-margin-subhead">Enhetsstorlekar (à BA)</h4>
+            {(rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }]).map((t, i) => (
+              <div key={i} className="regler-unit-block">
+                <div className="regler-unit-block-header">
+                  <span className="regler-unit-label">{t.quantityInCrate} à BA</span>
+                  {(rules.ba.thresholds?.length ?? 1) > 1 && (
+                    <button type="button" className="regler-unit-remove" onClick={() => setRules(r => ({ ...r, ba: { ...r.ba, thresholds: (r.ba.thresholds ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort enhet">
+                      Ta bort
+                    </button>
+                  )}
+                </div>
+                <div className="regler-margins-minimal regler-unit-fields">
+                  <label className="regler-threshold-row">
+                    <span>Antal per back</span>
+                    <input type="number" min={1} value={t.quantityInCrate} onChange={e => {
+                      const v = Number(e.target.value) || 1;
+                      const th = [...(rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }])];
+                      th[i] = { ...th[i], quantityInCrate: v };
+                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Exakt antal upp till (glas)</span>
+                    <input type="number" min={0} value={t.smallOrderExactMax ?? rules.ba.smallOrderExactMax} onChange={e => {
+                      const v = Number(e.target.value) ?? 12;
+                      const th = [...(rules.ba.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], smallOrderExactMax: v };
+                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Från (glas) → 1 hel back</span>
+                    <input type="number" min={0} value={t.pickFullCrateIfOrderedAtLeast ?? 13} onChange={e => {
+                      const v = Number(e.target.value) ?? 13;
+                      const th = [...(rules.ba.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], pickFullCrateIfOrderedAtLeast: v };
+                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Ta extra hel back om rest ≥ (%)</span>
+                    <input type="number" min={0} max={100} value={t.restPercentFullCrateThreshold ?? rules.ba.restPercentFullCrateThreshold} onChange={e => {
+                      const v = Number(e.target.value) ?? 50;
+                      const th = [...(rules.ba.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], restPercentFullCrateThreshold: v };
+                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
+                    }} />
+                  </label>
+                </div>
+              </div>
             ))}
-          </div>
-        </details>
-      </section>
+            <button type="button" className="regler-add-unit" onClick={() => {
+              const th = rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }];
+              const nextQty = Math.max(16, ...th.map(t => t.quantityInCrate)) + 5;
+              setRules(r => ({ ...r, ba: { ...r.ba, thresholds: [...th, { quantityInCrate: nextQty, pickFullCrateIfOrderedAtLeast: Math.ceil(nextQty * 0.8), smallOrderExactMax: Math.floor(nextQty * 0.75), restPercentFullCrateThreshold: 50 }] } }));
+            }}>
+              + Lägg till enhetsstorlek (t.ex. 25 à BA)
+            </button>
 
-      <div className="regler-actions">
-        <button type="button" className="regler-save" onClick={handleSaveRules}>
-          Spara regler
-        </button>
-        <button type="button" className="regler-reset" onClick={() => setRules(defaultPlockbotRules)}>
-          Återställ standardregler
-        </button>
-      </div>
+            <h4 className="regler-margin-subhead">Säkerhetsmarginal (större beställningar, gäller alla backar)</h4>
+            <div className="regler-margins-minimal">
+              {[0, 1, 2, 3].map(i => {
+                const m = rules.ba.margins[i];
+                const maxOrdered = m?.maxOrdered ?? [49, 149, 299, 499][i];
+                return (
+                  <label key={i} className="regler-threshold-row">
+                    <span>≤{maxOrdered} st →</span>
+                    <input type="number" min={0} value={m?.extra ?? 0} onChange={e => {
+                      const extra = Number(e.target.value) || 0;
+                      const margins = (rules.ba.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
+                      setRules(r => ({ ...r, ba: { ...r.ba, margins } }));
+                    }} />
+                    <span>extra glas</span>
+                  </label>
+                );
+              })}
+              <label className="regler-threshold-row">
+                <span>Avrunda till hel back från (st)</span>
+                <input type="number" min={0} value={rules.ba.largeOrderRoundUpFrom} onChange={e => updateBA({ largeOrderRoundUpFrom: Number(e.target.value) || 500 })} />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {rulesTab === 'ka' && (
+          <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-ka">
+            <h3 className="regler-tab-panel-title">Porslin (KA)</h3>
+            <p className="regler-hint regler-hint--short">Definiera en eller flera kassettstorlekar (t.ex. 10 à KA, 25 à KA). Varje enhet har egna småbeställnings- och rest-regler. Artiklar i Excel med matchande "antal per kassett" får den enhetens regler.</p>
+
+            <h4 className="regler-margin-subhead">Enhetsstorlekar (à KA)</h4>
+            {(rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }]).map((t, i) => (
+              <div key={i} className="regler-unit-block">
+                <div className="regler-unit-block-header">
+                  <span className="regler-unit-label">{t.quantityInCassette} à KA</span>
+                  {(rules.ka.thresholds?.length ?? 1) > 1 && (
+                    <button type="button" className="regler-unit-remove" onClick={() => setRules(r => ({ ...r, ka: { ...r.ka, thresholds: (r.ka.thresholds ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort enhet">
+                      Ta bort
+                    </button>
+                  )}
+                </div>
+                <div className="regler-margins-minimal regler-unit-fields">
+                  <label className="regler-threshold-row">
+                    <span>Antal per kassett</span>
+                    <input type="number" min={1} value={t.quantityInCassette} onChange={e => {
+                      const v = Number(e.target.value) || 1;
+                      const th = [...(rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }])];
+                      th[i] = { ...th[i], quantityInCassette: v };
+                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Exakt antal upp till (tallrikar)</span>
+                    <input type="number" min={0} value={t.smallOrderExactMax ?? rules.ka.smallOrderExactMax} onChange={e => {
+                      const v = Number(e.target.value) ?? 10;
+                      const th = [...(rules.ka.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], smallOrderExactMax: v };
+                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Från (tallrikar) → 1 hel kassett</span>
+                    <input type="number" min={0} value={t.pickFullCassetteIfOrderedAtLeast ?? 11} onChange={e => {
+                      const v = Number(e.target.value) ?? 11;
+                      const th = [...(rules.ka.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], pickFullCassetteIfOrderedAtLeast: v };
+                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
+                    }} />
+                  </label>
+                  <label className="regler-threshold-row">
+                    <span>Ta extra hel kassett om rest ≥ (%)</span>
+                    <input type="number" min={0} max={100} value={t.restPercentFullCassetteThreshold ?? rules.ka.restPercentFullCassetteThreshold} onChange={e => {
+                      const v = Number(e.target.value) ?? 50;
+                      const th = [...(rules.ka.thresholds ?? [])];
+                      if (!th[i]) return;
+                      th[i] = { ...th[i], restPercentFullCassetteThreshold: v };
+                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
+                    }} />
+                  </label>
+                </div>
+              </div>
+            ))}
+            <button type="button" className="regler-add-unit" onClick={() => {
+              const th = rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }];
+              const nextQty = Math.max(10, ...th.map(t => t.quantityInCassette)) + 5;
+              setRules(r => ({ ...r, ka: { ...r.ka, thresholds: [...th, { quantityInCassette: nextQty, pickFullCassetteIfOrderedAtLeast: Math.ceil(nextQty * 0.8), smallOrderExactMax: Math.floor(nextQty * 0.75), restPercentFullCassetteThreshold: 50 }] } }));
+            }}>
+              + Lägg till enhetsstorlek (t.ex. 25 à KA)
+            </button>
+
+            <h4 className="regler-margin-subhead">Säkerhetsmarginal (större beställningar, gäller alla kassetter)</h4>
+            <div className="regler-margins-minimal">
+              {[0, 1, 2, 3].map(i => {
+                const m = rules.ka.margins[i];
+                const maxOrdered = m?.maxOrdered ?? [49, 149, 299, 499][i];
+                return (
+                  <label key={i} className="regler-threshold-row">
+                    <span>≤{maxOrdered} st →</span>
+                    <input type="number" min={0} value={m?.extra ?? 0} onChange={e => {
+                      const extra = Number(e.target.value) || 0;
+                      const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
+                      setRules(r => ({ ...r, ka: { ...r.ka, margins } }));
+                    }} />
+                    <span>extra tallrikar</span>
+                  </label>
+                );
+              })}
+              <label className="regler-threshold-row">
+                <span>Avrunda till hel kassett från (st)</span>
+                <input type="number" min={0} value={rules.ka.largeOrderRoundUpFrom} onChange={e => updateKA({ largeOrderRoundUpFrom: Number(e.target.value) || 500 })} />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {rulesTab === 'bestick' && (
+          <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-bestick">
+            <h3 className="regler-tab-panel-title">Bestick</h3>
+            <p className="regler-hint regler-hint--short">Exakt till angivet antal; därefter extra per intervall.</p>
+            <div className="regler-margins-minimal">
+              <label className="regler-threshold-row">
+                <span>Exakt till (st)</span>
+                <input type="number" min={0} value={rules.bestick.exactBelow} onChange={e => updateBESTICK({ exactBelow: Number(e.target.value) || 50 })} />
+              </label>
+              {rules.bestick.ranges.map((r, i) => (
+                <label key={i} className="regler-threshold-row">
+                  <span>{r.minOrdered}–{r.maxOrdered === Infinity ? '∞' : r.maxOrdered} st →</span>
+                  <input type="number" min={0} value={r.extra} onChange={e => updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, extra: Number(e.target.value) || 0 } : x) })} />
+                  <span>extra bestick</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="regler-actions">
+          <button type="button" className="regler-save" onClick={handleSaveRules}>
+            {saved ? 'Sparat!' : 'Spara regler'}
+          </button>
+          <button type="button" className="regler-reset" onClick={handleResetRules}>
+            Återställ grundregler
+          </button>
+          {saveFeedback === 'success' && (
+            <p className="regler-save-feedback" role="status" aria-live="polite">
+              Reglerna är sparade och gäller direkt när du testar artiklar eller skapar plocklista.
+            </p>
+          )}
+          {saveFeedback === 'error' && (
+            <p className="regler-save-feedback regler-save-feedback--error" role="alert">
+              Kunde inte spara. Kontrollera nätverk och att backend/Supabase är tillgänglig.
+            </p>
+          )}
+        </div>
+      </section>
 
       {newArticleModalOpen && (
         <div className="regler-modal-backdrop" onClick={() => setNewArticleModalOpen(false)} role="presentation">
@@ -632,7 +858,7 @@ export default function Regler() {
                     min={1}
                     value={newArticleDraft.ka !== undefined && newArticleDraft.ka !== null ? String(newArticleDraft.ka) : ''}
                     onChange={e => setNewArticleDraft(d => ({ ...d, ka: e.target.value === '' ? undefined : Number(e.target.value) || undefined }))}
-                    placeholder="25"
+                    placeholder="10"
                     aria-label="Antal per kassett"
                   />
                 </label>
@@ -645,7 +871,7 @@ export default function Regler() {
                     min={1}
                     value={newArticleDraft.ba !== undefined && newArticleDraft.ba !== null ? String(newArticleDraft.ba) : ''}
                     onChange={e => setNewArticleDraft(d => ({ ...d, ba: e.target.value === '' ? undefined : Number(e.target.value) || undefined }))}
-                    placeholder="25"
+                    placeholder="16"
                     aria-label="Antal per back"
                   />
                 </label>
