@@ -591,87 +591,63 @@ export default function Regler() {
         {rulesTab === 'ba' && (
           <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-ba">
             <h3 className="regler-tab-panel-title">Glas (BA)</h3>
-            <p className="regler-hint regler-hint--short">Definiera en eller flera backstorlekar (t.ex. 16 à BA, 25 à BA). Varje enhet har egna småbeställnings- och rest-regler. Artiklar i Excel med matchande "antal per back" får den enhetens regler.</p>
+            <p className="regler-hint regler-hint--short">16 glas per back (fast). ≤12 → exakt antal; 13–16 → 1 hel back. Vid större beställningar: sätt hur många <strong>extra glas</strong> som ska tas vid varje gräns (X antal). 500+ avrundas till hel back. 50 %-regel för rest.</p>
 
-            <h4 className="regler-margin-subhead">Enhetsstorlekar (à BA)</h4>
-            {(rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }]).map((t, i) => (
-              <div key={i} className="regler-unit-block">
-                <div className="regler-unit-block-header">
-                  <span className="regler-unit-label">{t.quantityInCrate} à BA</span>
-                  {(rules.ba.thresholds?.length ?? 1) > 1 && (
-                    <button type="button" className="regler-unit-remove" onClick={() => setRules(r => ({ ...r, ba: { ...r.ba, thresholds: (r.ba.thresholds ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort enhet">
-                      Ta bort
-                    </button>
-                  )}
-                </div>
-                <div className="regler-margins-minimal regler-unit-fields">
-                  <label className="regler-threshold-row">
-                    <span>Antal per back</span>
-                    <input type="number" min={1} value={t.quantityInCrate} onChange={e => {
-                      const v = Number(e.target.value) || 1;
-                      const th = [...(rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }])];
-                      th[i] = { ...th[i], quantityInCrate: v };
-                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Exakt antal upp till (glas)</span>
-                    <input type="number" min={0} value={t.smallOrderExactMax ?? rules.ba.smallOrderExactMax} onChange={e => {
-                      const v = Number(e.target.value) ?? 12;
-                      const th = [...(rules.ba.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], smallOrderExactMax: v };
-                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Från (glas) → 1 hel back</span>
-                    <input type="number" min={0} value={t.pickFullCrateIfOrderedAtLeast ?? 13} onChange={e => {
-                      const v = Number(e.target.value) ?? 13;
-                      const th = [...(rules.ba.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], pickFullCrateIfOrderedAtLeast: v };
-                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Ta extra hel back om rest ≥ (%)</span>
-                    <input type="number" min={0} max={100} value={t.restPercentFullCrateThreshold ?? rules.ba.restPercentFullCrateThreshold} onChange={e => {
-                      const v = Number(e.target.value) ?? 50;
-                      const th = [...(rules.ba.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], restPercentFullCrateThreshold: v };
-                      setRules(r => ({ ...r, ba: { ...r.ba, thresholds: th } }));
-                    }} />
-                  </label>
-                </div>
-              </div>
-            ))}
-            <button type="button" className="regler-add-unit" onClick={() => {
-              const th = rules.ba.thresholds ?? [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }];
-              const nextQty = Math.max(16, ...th.map(t => t.quantityInCrate)) + 5;
-              setRules(r => ({ ...r, ba: { ...r.ba, thresholds: [...th, { quantityInCrate: nextQty, pickFullCrateIfOrderedAtLeast: Math.ceil(nextQty * 0.8), smallOrderExactMax: Math.floor(nextQty * 0.75), restPercentFullCrateThreshold: 50 }] } }));
-            }}>
-              + Lägg till enhetsstorlek (t.ex. 25 à BA)
-            </button>
+            <h4 className="regler-margin-subhead">50 %-regeln (rest)</h4>
+            <p className="regler-hint regler-hint--short">Om resten efter hela backar är ≥ denna procent av en back (rest ÷ 16 × 100), plocka en extra hel back istället för lösa glas.</p>
+            <label className="regler-threshold-row">
+              <span>Ta extra hel back om rest ≥ (%)</span>
+              <input type="number" min={0} max={100} value={rules.ba.restPercentFullCrateThreshold ?? 50} onChange={e => {
+                const v = Number(e.target.value) ?? 50;
+                const th = (rules.ba.thresholds ?? []).map(t => ({ ...t, restPercentFullCrateThreshold: v }));
+                setRules(r => ({ ...r, ba: { ...r.ba, restPercentFullCrateThreshold: v, thresholds: th.length ? th : r.ba.thresholds } }));
+              }} />
+            </label>
 
-            <h4 className="regler-margin-subhead">Säkerhetsmarginal (större beställningar, gäller alla backar)</h4>
+            <h4 className="regler-margin-subhead">Hur många extra glas vid X antal?</h4>
+            <p className="regler-hint regler-hint--short">Lägg till eller ta bort rader. Varje rad: vid beställning till och med X st, plocka Y extra glas.</p>
             <div className="regler-margins-minimal">
-              {[0, 1, 2, 3].map(i => {
-                const m = rules.ba.margins[i];
-                const maxOrdered = m?.maxOrdered ?? [49, 149, 299, 499][i];
-                return (
-                  <label key={i} className="regler-threshold-row">
-                    <span>≤{maxOrdered} st →</span>
-                    <input type="number" min={0} value={m?.extra ?? 0} onChange={e => {
-                      const extra = Number(e.target.value) || 0;
-                      const margins = (rules.ba.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
-                      setRules(r => ({ ...r, ba: { ...r.ba, margins } }));
-                    }} />
-                    <span>extra glas</span>
-                  </label>
-                );
-              })}
+              {(rules.ba.margins ?? []).map((m, i) => (
+                <div key={i} className="regler-margin-row-wrap">
+                  <div className="regler-threshold-row regler-threshold-row--multi">
+                    <label>
+                      <span>Vid beställning till och med (st)</span>
+                      <input type="number" min={1} value={m.maxOrdered} onChange={e => {
+                        const v = Number(e.target.value);
+                        if (Number.isNaN(v) || v < 1) return;
+                        const margins = (rules.ba.margins ?? []).map((x, j) => j === i ? { ...x, maxOrdered: v } : x);
+                        setRules(r => ({ ...r, ba: { ...r.ba, margins } }));
+                      }} />
+                    </label>
+                    <label>
+                      <span>Extra glas att plocka</span>
+                      <input type="number" min={0} value={m.extra} onChange={e => {
+                        const extra = Number(e.target.value) || 0;
+                        const margins = (rules.ba.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
+                        setRules(r => ({ ...r, ba: { ...r.ba, margins } }));
+                      }} />
+                    </label>
+                    <label>
+                      <span>Extra backar att plocka</span>
+                      <input type="number" min={0} value={m.extraUnits ?? 0} onChange={e => {
+                        const extraUnits = Number(e.target.value) || 0;
+                        const margins = (rules.ba.margins ?? []).map((x, j) => j === i ? { ...x, extraUnits } : x);
+                        setRules(r => ({ ...r, ba: { ...r.ba, margins } }));
+                      }} />
+                    </label>
+                  </div>
+                  <button type="button" className="regler-row-remove" onClick={() => setRules(r => ({ ...r, ba: { ...r.ba, margins: (r.ba.margins ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort rad">
+                    Ta bort
+                  </button>
+                </div>
+              ))}
+              <button type="button" className="regler-add-row" onClick={() => {
+                const margins = rules.ba.margins ?? [];
+                const lastMax = margins.length ? Math.max(...margins.map(x => x.maxOrdered)) : 499;
+                setRules(r => ({ ...r, ba: { ...r.ba, margins: [...(r.ba.margins ?? []), { maxOrdered: lastMax + 100, extra: 0, extraUnits: 0 }] } }));
+              }}>
+                + Lägg till rad
+              </button>
               <label className="regler-threshold-row">
                 <span>Avrunda till hel back från (st)</span>
                 <input type="number" min={0} value={rules.ba.largeOrderRoundUpFrom} onChange={e => updateBA({ largeOrderRoundUpFrom: Number(e.target.value) || 500 })} />
@@ -683,87 +659,63 @@ export default function Regler() {
         {rulesTab === 'ka' && (
           <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-ka">
             <h3 className="regler-tab-panel-title">Porslin (KA)</h3>
-            <p className="regler-hint regler-hint--short">Definiera en eller flera kassettstorlekar (t.ex. 10 à KA, 25 à KA). Varje enhet har egna småbeställnings- och rest-regler. Artiklar i Excel med matchande "antal per kassett" får den enhetens regler.</p>
+            <p className="regler-hint regler-hint--short">10 tallrikar per kassett (fast). ≤10 → exakt antal. Vid större beställningar: sätt hur många <strong>extra tallrikar</strong> som ska tas vid varje gräns (X antal). 500+ avrundas till hel kassett. 50 %-regel för rest.</p>
 
-            <h4 className="regler-margin-subhead">Enhetsstorlekar (à KA)</h4>
-            {(rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }]).map((t, i) => (
-              <div key={i} className="regler-unit-block">
-                <div className="regler-unit-block-header">
-                  <span className="regler-unit-label">{t.quantityInCassette} à KA</span>
-                  {(rules.ka.thresholds?.length ?? 1) > 1 && (
-                    <button type="button" className="regler-unit-remove" onClick={() => setRules(r => ({ ...r, ka: { ...r.ka, thresholds: (r.ka.thresholds ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort enhet">
-                      Ta bort
-                    </button>
-                  )}
-                </div>
-                <div className="regler-margins-minimal regler-unit-fields">
-                  <label className="regler-threshold-row">
-                    <span>Antal per kassett</span>
-                    <input type="number" min={1} value={t.quantityInCassette} onChange={e => {
-                      const v = Number(e.target.value) || 1;
-                      const th = [...(rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }])];
-                      th[i] = { ...th[i], quantityInCassette: v };
-                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Exakt antal upp till (tallrikar)</span>
-                    <input type="number" min={0} value={t.smallOrderExactMax ?? rules.ka.smallOrderExactMax} onChange={e => {
-                      const v = Number(e.target.value) ?? 10;
-                      const th = [...(rules.ka.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], smallOrderExactMax: v };
-                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Från (tallrikar) → 1 hel kassett</span>
-                    <input type="number" min={0} value={t.pickFullCassetteIfOrderedAtLeast ?? 11} onChange={e => {
-                      const v = Number(e.target.value) ?? 11;
-                      const th = [...(rules.ka.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], pickFullCassetteIfOrderedAtLeast: v };
-                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
-                    }} />
-                  </label>
-                  <label className="regler-threshold-row">
-                    <span>Ta extra hel kassett om rest ≥ (%)</span>
-                    <input type="number" min={0} max={100} value={t.restPercentFullCassetteThreshold ?? rules.ka.restPercentFullCassetteThreshold} onChange={e => {
-                      const v = Number(e.target.value) ?? 50;
-                      const th = [...(rules.ka.thresholds ?? [])];
-                      if (!th[i]) return;
-                      th[i] = { ...th[i], restPercentFullCassetteThreshold: v };
-                      setRules(r => ({ ...r, ka: { ...r.ka, thresholds: th } }));
-                    }} />
-                  </label>
-                </div>
-              </div>
-            ))}
-            <button type="button" className="regler-add-unit" onClick={() => {
-              const th = rules.ka.thresholds ?? [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }];
-              const nextQty = Math.max(10, ...th.map(t => t.quantityInCassette)) + 5;
-              setRules(r => ({ ...r, ka: { ...r.ka, thresholds: [...th, { quantityInCassette: nextQty, pickFullCassetteIfOrderedAtLeast: Math.ceil(nextQty * 0.8), smallOrderExactMax: Math.floor(nextQty * 0.75), restPercentFullCassetteThreshold: 50 }] } }));
-            }}>
-              + Lägg till enhetsstorlek (t.ex. 25 à KA)
-            </button>
+            <h4 className="regler-margin-subhead">50 %-regeln (rest)</h4>
+            <p className="regler-hint regler-hint--short">Om resten efter hela kassetter är ≥ denna procent av en kassett (rest ÷ 10 × 100), plocka en extra hel kassett istället för lösa tallrikar.</p>
+            <label className="regler-threshold-row">
+              <span>Ta extra hel kassett om rest ≥ (%)</span>
+              <input type="number" min={0} max={100} value={rules.ka.restPercentFullCassetteThreshold ?? 50} onChange={e => {
+                const v = Number(e.target.value) ?? 50;
+                const th = (rules.ka.thresholds ?? []).map(t => ({ ...t, restPercentFullCassetteThreshold: v }));
+                setRules(r => ({ ...r, ka: { ...r.ka, restPercentFullCassetteThreshold: v, thresholds: th.length ? th : r.ka.thresholds } }));
+              }} />
+            </label>
 
-            <h4 className="regler-margin-subhead">Säkerhetsmarginal (större beställningar, gäller alla kassetter)</h4>
+            <h4 className="regler-margin-subhead">Hur många extra tallrikar vid X antal?</h4>
+            <p className="regler-hint regler-hint--short">Lägg till eller ta bort rader. Varje rad: vid beställning till och med X st, plocka Y extra tallrikar.</p>
             <div className="regler-margins-minimal">
-              {[0, 1, 2, 3].map(i => {
-                const m = rules.ka.margins[i];
-                const maxOrdered = m?.maxOrdered ?? [49, 149, 299, 499][i];
-                return (
-                  <label key={i} className="regler-threshold-row">
-                    <span>≤{maxOrdered} st →</span>
-                    <input type="number" min={0} value={m?.extra ?? 0} onChange={e => {
-                      const extra = Number(e.target.value) || 0;
-                      const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
-                      setRules(r => ({ ...r, ka: { ...r.ka, margins } }));
-                    }} />
-                    <span>extra tallrikar</span>
-                  </label>
-                );
-              })}
+              {(rules.ka.margins ?? []).map((m, i) => (
+                <div key={i} className="regler-margin-row-wrap">
+                  <div className="regler-threshold-row regler-threshold-row--multi">
+                    <label>
+                      <span>Vid beställning till och med (st)</span>
+                      <input type="number" min={1} value={m.maxOrdered} onChange={e => {
+                        const v = Number(e.target.value);
+                        if (Number.isNaN(v) || v < 1) return;
+                        const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, maxOrdered: v } : x);
+                        setRules(r => ({ ...r, ka: { ...r.ka, margins } }));
+                      }} />
+                    </label>
+                    <label>
+                      <span>Extra tallrikar att plocka</span>
+                      <input type="number" min={0} value={m.extra} onChange={e => {
+                        const extra = Number(e.target.value) || 0;
+                        const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, extra } : x);
+                        setRules(r => ({ ...r, ka: { ...r.ka, margins } }));
+                      }} />
+                    </label>
+                    <label>
+                      <span>Extra kassetter att plocka</span>
+                      <input type="number" min={0} value={m.extraUnits ?? 0} onChange={e => {
+                        const extraUnits = Number(e.target.value) || 0;
+                        const margins = (rules.ka.margins ?? []).map((x, j) => j === i ? { ...x, extraUnits } : x);
+                        setRules(r => ({ ...r, ka: { ...r.ka, margins } }));
+                      }} />
+                    </label>
+                  </div>
+                  <button type="button" className="regler-row-remove" onClick={() => setRules(r => ({ ...r, ka: { ...r.ka, margins: (r.ka.margins ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort rad">
+                    Ta bort
+                  </button>
+                </div>
+              ))}
+              <button type="button" className="regler-add-row" onClick={() => {
+                const margins = rules.ka.margins ?? [];
+                const lastMax = margins.length ? Math.max(...margins.map(x => x.maxOrdered)) : 499;
+                setRules(r => ({ ...r, ka: { ...r.ka, margins: [...(r.ka.margins ?? []), { maxOrdered: lastMax + 100, extra: 0, extraUnits: 0 }] } }));
+              }}>
+                + Lägg till rad
+              </button>
               <label className="regler-threshold-row">
                 <span>Avrunda till hel kassett från (st)</span>
                 <input type="number" min={0} value={rules.ka.largeOrderRoundUpFrom} onChange={e => updateKA({ largeOrderRoundUpFrom: Number(e.target.value) || 500 })} />
@@ -775,19 +727,53 @@ export default function Regler() {
         {rulesTab === 'bestick' && (
           <div className="regler-tab-panel" role="tabpanel" aria-labelledby="regler-tab-bestick">
             <h3 className="regler-tab-panel-title">Bestick</h3>
-            <p className="regler-hint regler-hint--short">Exakt till angivet antal; därefter extra per intervall.</p>
+            <p className="regler-hint regler-hint--short">Grund: ≤50 exakt. Vid större beställningar: sätt vid vilket antal (X) och hur många <strong>extra bestick</strong> som ska tas. Lägg till eller ta bort rader efter behov.</p>
+            <h4 className="regler-margin-subhead">Hur många extra bestick vid X antal?</h4>
             <div className="regler-margins-minimal">
               <label className="regler-threshold-row">
-                <span>Exakt till (st)</span>
+                <span>Exakt antal upp till (st)</span>
                 <input type="number" min={0} value={rules.bestick.exactBelow} onChange={e => updateBESTICK({ exactBelow: Number(e.target.value) || 50 })} />
               </label>
-              {rules.bestick.ranges.map((r, i) => (
-                <label key={i} className="regler-threshold-row">
-                  <span>{r.minOrdered}–{r.maxOrdered === Infinity ? '∞' : r.maxOrdered} st →</span>
-                  <input type="number" min={0} value={r.extra} onChange={e => updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, extra: Number(e.target.value) || 0 } : x) })} />
-                  <span>extra bestick</span>
-                </label>
+              {(rules.bestick.ranges ?? []).map((r, i) => (
+                <div key={i} className="regler-margin-row-wrap">
+                  <div className="regler-threshold-row regler-threshold-row--multi">
+                    <label>
+                      <span>Vid beställning från (st)</span>
+                      <input type="number" min={0} value={r.minOrdered} onChange={e => {
+                        const v = Number(e.target.value);
+                        if (Number.isNaN(v) || v < 0) return;
+                        updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, minOrdered: v } : x) });
+                      }} />
+                    </label>
+                    <label>
+                      <span>Till (st, tom = obegränsat)</span>
+                      <input type="number" min={0} placeholder="∞" value={r.maxOrdered === Infinity ? '' : r.maxOrdered} onChange={e => {
+                        const raw = e.target.value.trim();
+                        const v = raw === '' ? Infinity : Number(raw);
+                        if (v !== Infinity && (Number.isNaN(v) || v < 0)) return;
+                        updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, maxOrdered: v } : x) });
+                      }} />
+                    </label>
+                    <label>
+                      <span>Extra bestick att plocka</span>
+                      <input type="number" min={0} value={r.extra} onChange={e => updateBESTICK({ ranges: rules.bestick.ranges.map((x, j) => j === i ? { ...x, extra: Number(e.target.value) || 0 } : x) })} />
+                    </label>
+                  </div>
+                  <button type="button" className="regler-row-remove" onClick={() => setRules(r => ({ ...r, bestick: { ...r.bestick, ranges: (r.bestick.ranges ?? []).filter((_, j) => j !== i) } }))} aria-label="Ta bort rad">
+                    Ta bort
+                  </button>
+                </div>
               ))}
+              <button type="button" className="regler-add-row" onClick={() => {
+                const ranges = rules.bestick.ranges ?? [];
+                const last = ranges.length ? ranges[ranges.length - 1] : null;
+                const newMin = last
+                  ? (last.maxOrdered !== Infinity && last.maxOrdered != null ? last.maxOrdered + 1 : last.minOrdered + 100)
+                  : 51;
+                updateBESTICK({ ranges: [...ranges, { minOrdered: newMin, maxOrdered: Infinity, extra: 0 }] });
+              }}>
+                + Lägg till rad
+              </button>
             </div>
           </div>
         )}

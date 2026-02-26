@@ -43,8 +43,8 @@ export interface KARules {
   defaultQuantityPerCassette: number;
   smallOrderExactMax: number;
   smallOrderOneCassetteUpTo: number;
-  /** Per beställningsstorlek: om beställt ≤ maxOrdered, lägg på extra st. */
-  margins: { maxOrdered: number; extra: number }[];
+  /** Per beställningsstorlek: om beställt ≤ maxOrdered, lägg på extra st och ev. extra hela kassetter. */
+  margins: { maxOrdered: number; extra: number; extraUnits?: number }[];
   largeOrderRoundUpFrom: number;
   /** Vid beställning ≥ largeOrderRoundUpFrom: plocka denna antal extra kassetter. */
   largeOrderExtraUnits?: number;
@@ -66,8 +66,8 @@ export interface BARules {
   defaultQuantityPerCrate: number;
   smallOrderExactMax: number;
   smallOrderOneCrateUpTo: number;
-  /** Per beställningsstorlek: om beställt ≤ maxOrdered, lägg på extra st. */
-  margins: { maxOrdered: number; extra: number }[];
+  /** Per beställningsstorlek: om beställt ≤ maxOrdered, lägg på extra st och ev. extra hela backar. */
+  margins: { maxOrdered: number; extra: number; extraUnits?: number }[];
   largeOrderRoundUpFrom: number;
   /** Vid beställning ≥ largeOrderRoundUpFrom: plocka denna antal extra backar. */
   largeOrderExtraUnits?: number;

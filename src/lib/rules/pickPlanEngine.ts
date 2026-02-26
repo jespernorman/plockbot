@@ -120,8 +120,15 @@ function computeKA(
   // C) Stora beställningar: avrunda upp till hel kassett + valfritt antal extra kassetter
   if (ordered >= ka.largeOrderRoundUpFrom) {
     const baseUnits = Math.ceil(ordered / unitSize);
-    const extraUnits = ka.largeOrderExtraUnits ?? 0;
+    const sortedByMaxDesc = [...(ka.margins ?? [])].sort((a, b) => b.maxOrdered - a.maxOrdered);
+    const marginForLarge = sortedByMaxDesc.find(m => m.maxOrdered <= ordered);
+    const extraUnitsFromMargin = marginForLarge?.extraUnits ?? 0;
+    // Om en margin-rad gäller, använd bara den radens extra kassetter – inte global largeOrderExtraUnits också
+    const extraUnits = marginForLarge ? extraUnitsFromMargin : (ka.largeOrderExtraUnits ?? 0);
     const fullUnitsCount = baseUnits + extraUnits;
+    const noteText = extraUnits > 0
+      ? `${baseUnits} KA + ${extraUnits} extra kassetter (totalt ${fullUnitsCount} KA)`
+      : `${fullUnitsCount} KA`;
     return {
       articleId,
       orderedQty: ordered,
@@ -130,15 +137,18 @@ function computeKA(
       fullUnitsCount,
       looseCount: 0,
       pickQtyTotal: fullUnitsCount * unitSize,
-      noteText: `${fullUnitsCount} KA`,
+      noteText,
     };
   }
 
-  // B) Marginal
+  // B) Säkerhetsmarginal: välj rätt intervall (sorterat på maxOrdered så lägsta träff gäller)
   let pickBase = ordered;
-  for (const m of ka.margins) {
+  let extraUnitsFromMargin = 0;
+  const sortedMargins = [...(ka.margins ?? [])].sort((a, b) => a.maxOrdered - b.maxOrdered);
+  for (const m of sortedMargins) {
     if (ordered <= m.maxOrdered) {
       pickBase = ordered + m.extra;
+      extraUnitsFromMargin = m.extraUnits ?? 0;
       break;
     }
   }
@@ -151,8 +161,12 @@ function computeKA(
     fullUnitsCount += 1;
     rest = 0;
   }
+  fullUnitsCount += extraUnitsFromMargin;
   const pickQtyTotal = fullUnitsCount * unitSize + rest;
-  const noteText = rest > 0 ? `${fullUnitsCount} KA + ${rest} lösa` : `${fullUnitsCount} KA`;
+  const extraPart = extraUnitsFromMargin > 0 ? ` (${fullUnitsCount - extraUnitsFromMargin} + ${extraUnitsFromMargin} extra kassetter)` : '';
+  const noteText = rest > 0
+    ? `${fullUnitsCount} KA + ${rest} lösa${extraPart}`
+    : `${fullUnitsCount} KA${extraPart}`;
 
   return {
     articleId,
@@ -220,8 +234,16 @@ function computeBA(
 
   if (ordered >= ba.largeOrderRoundUpFrom) {
     const baseUnits = Math.ceil(ordered / unitSize);
-    const extraUnits = ba.largeOrderExtraUnits ?? 0;
+    // För beställningar >= largeOrderRoundUpFrom: använd margin-rad med störst maxOrdered ≤ ordered (t.ex. rad "till 500" gäller för 501+)
+    const sortedByMaxDesc = [...(ba.margins ?? [])].sort((a, b) => b.maxOrdered - a.maxOrdered);
+    const marginForLarge = sortedByMaxDesc.find(m => m.maxOrdered <= ordered);
+    const extraUnitsFromMargin = marginForLarge?.extraUnits ?? 0;
+    // Om en margin-rad gäller, använd bara den radens extra backar – lägg inte på global largeOrderExtraUnits (annars blir det dubbelt)
+    const extraUnits = marginForLarge ? extraUnitsFromMargin : (ba.largeOrderExtraUnits ?? 0);
     const fullUnitsCount = baseUnits + extraUnits;
+    const noteText = extraUnits > 0
+      ? `${baseUnits} BA + ${extraUnits} extra backar (totalt ${fullUnitsCount} BA)`
+      : `${fullUnitsCount} BA`;
     return {
       articleId,
       orderedQty: ordered,
@@ -230,15 +252,18 @@ function computeBA(
       fullUnitsCount,
       looseCount: 0,
       pickQtyTotal: fullUnitsCount * unitSize,
-      noteText: `${fullUnitsCount} BA`,
+      noteText,
     };
   }
 
-  // BA: marginal per beställningsstorlek (samma logik som KA)
+  // BA: säkerhetsmarginal (sorterat på maxOrdered)
   let pickBase = ordered;
-  for (const m of ba.margins) {
+  let extraUnitsFromMargin = 0;
+  const sortedMargins = [...(ba.margins ?? [])].sort((a, b) => a.maxOrdered - b.maxOrdered);
+  for (const m of sortedMargins) {
     if (ordered <= m.maxOrdered) {
       pickBase = ordered + m.extra;
+      extraUnitsFromMargin = m.extraUnits ?? 0;
       break;
     }
   }
@@ -249,8 +274,12 @@ function computeBA(
     fullUnitsCount += 1;
     rest = 0;
   }
+  fullUnitsCount += extraUnitsFromMargin;
   const pickQtyTotal = fullUnitsCount * unitSize + rest;
-  const noteText = rest > 0 ? `${fullUnitsCount} BA + ${rest} lösa` : `${fullUnitsCount} BA`;
+  const extraPart = extraUnitsFromMargin > 0 ? ` (${fullUnitsCount - extraUnitsFromMargin} + ${extraUnitsFromMargin} extra backar)` : '';
+  const noteText = rest > 0
+    ? `${fullUnitsCount} BA + ${rest} lösa${extraPart}`
+    : `${fullUnitsCount} BA${extraPart}`;
 
   return {
     articleId,
@@ -274,7 +303,8 @@ function computeBESTICK(
     // exakt (50 eller färre enligt spec)
   } else {
     for (const r of bestick.ranges) {
-      if (ordered >= r.minOrdered && ordered <= r.maxOrdered) {
+      const max = r.maxOrdered == null ? Infinity : r.maxOrdered;
+      if (ordered >= r.minOrdered && ordered <= max) {
         pickQtyTotal = ordered + r.extra;
         break;
       }

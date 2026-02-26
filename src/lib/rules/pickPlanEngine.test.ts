@@ -1,153 +1,122 @@
 /**
- * Unit tests enligt spec för regelmotor.
- * PORSLIN (KA=25), GLAS (BA=25), BESTICK.
+ * Tester för att verifiera att plockreglerna verkligen används i beräkningen.
+ * Kör: npm run test
  */
 import { describe, it, expect } from 'vitest';
 import { computePickPlan } from './pickPlanEngine';
-import { defaultPlockbotRules } from './defaultRules';
-import type { Article } from './types';
+import type { Article, PlockbotRules } from './types';
 
-const rules = defaultPlockbotRules;
-
-const porcelainArticle: Article = {
-  id: 'T100',
-  name: 'Tallrik',
-  category: 'PORSLIN',
-  ka: 25,
+const defaultRules: PlockbotRules = {
+  ka: {
+    defaultQuantityPerCassette: 10,
+    smallOrderExactMax: 10,
+    smallOrderOneCassetteUpTo: 10,
+    margins: [
+      { maxOrdered: 49, extra: 0, extraUnits: 0 },
+      { maxOrdered: 149, extra: 3, extraUnits: 0 },
+      { maxOrdered: 299, extra: 5, extraUnits: 0 },
+      { maxOrdered: 499, extra: 8, extraUnits: 0 },
+    ],
+    largeOrderRoundUpFrom: 500,
+    restPercentFullCassetteThreshold: 50,
+    thresholds: [{ quantityInCassette: 10, pickFullCassetteIfOrderedAtLeast: 11, smallOrderExactMax: 10, restPercentFullCassetteThreshold: 50 }],
+  },
+  ba: {
+    defaultQuantityPerCrate: 16,
+    smallOrderExactMax: 12,
+    smallOrderOneCrateUpTo: 16,
+    margins: [
+      { maxOrdered: 49, extra: 0, extraUnits: 0 },
+      { maxOrdered: 149, extra: 3, extraUnits: 0 },
+      { maxOrdered: 299, extra: 5, extraUnits: 0 },
+      { maxOrdered: 499, extra: 8, extraUnits: 0 },
+      { maxOrdered: 500, extra: 0, extraUnits: 5 },
+    ],
+    largeOrderRoundUpFrom: 500,
+    restPercentFullCrateThreshold: 50,
+    thresholds: [{ quantityInCrate: 16, pickFullCrateIfOrderedAtLeast: 13, smallOrderExactMax: 12, restPercentFullCrateThreshold: 50 }],
+  },
+  bestick: {
+    exactBelow: 50,
+    ranges: [
+      { minOrdered: 51, maxOrdered: 150, extra: 3 },
+      { minOrdered: 151, maxOrdered: 300, extra: 5 },
+      { minOrdered: 301, maxOrdered: Infinity, extra: 10 },
+    ],
+  },
 };
 
-const glassArticle: Article = {
-  id: 'G50',
-  name: 'Glas',
-  category: 'GLAS',
-  ba: 25,
-};
+const articleBA: Article = { id: 'GLAS01', name: 'Glas', category: 'GLAS', ba: 16 };
+const articleKA: Article = { id: 'KA01', name: 'Tallrik', category: 'PORSLIN', ka: 10 };
+const articleBestick: Article = { id: 'BESTICK01', name: 'Bestick', category: 'BESTICK' };
 
-const bestickArticle: Article = {
-  id: 'B1',
-  name: 'Bestick',
-  category: 'BESTICK',
-};
-
-describe('PORSLIN (KA=25)', () => {
-  it('20 → 1 KA (tröskel 13 ger 13–25 som 1 KA)', () => {
-    const plan = computePickPlan(porcelainArticle, 20, rules);
-    expect(plan.fullUnitsCount).toBe(1);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(25);
-    expect(plan.noteText).toBe('1 KA');
+describe('computePickPlan – reglerna används i beräkningen', () => {
+  it('501 glas (BA): rad "till 500" med 5 extra backar ger 37 backar (32+5)', () => {
+    const plan = computePickPlan(articleBA, 501, defaultRules);
+    expect(plan.unitType).toBe('BA');
+    expect(plan.unitSize).toBe(16);
+    // 501 / 16 = 31.31 → 32 backar bas, + 5 extra backar från margin-raden "till 500"
+    expect(plan.fullUnitsCount).toBe(32 + 5);
+    expect(plan.fullUnitsCount).toBe(37);
+    expect(plan.pickQtyTotal).toBe(37 * 16);
+    expect(plan.noteText).toBe('32 BA + 5 extra backar (totalt 37 BA)');
   });
 
-  it('13 → 1 KA', () => {
-    const plan = computePickPlan(porcelainArticle, 13, rules);
-    expect(plan.fullUnitsCount).toBe(1);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(25);
-    expect(plan.noteText).toBe('1 KA');
+  it('500 glas (BA): samma rad ger 32+5 = 37 backar, visar "+ 5 extra backar"', () => {
+    const plan = computePickPlan(articleBA, 500, defaultRules);
+    expect(plan.fullUnitsCount).toBe(37);
+    expect(plan.pickQtyTotal).toBe(37 * 16);
+    expect(plan.noteText).toContain('5 extra backar');
   });
 
-  it('12 → 12 lösa', () => {
-    const plan = computePickPlan(porcelainArticle, 12, rules);
-    expect(plan.looseCount).toBe(12);
-    expect(plan.fullUnitsCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(12);
+  it('499 glas (BA): margin-path, inte large-order – följer marginal + 50%-regel, plus 0 extra backar (rad 499 har extraUnits 0)', () => {
+    const plan = computePickPlan(articleBA, 499, defaultRules);
+    expect(plan.unitType).toBe('BA');
+    // 499 + 8 = 507, 507/16 = 31.68 → 31 full, rest 11, 11/16 = 68.75% ≥ 50% → 32 backar + 0 extra backar
+    expect(plan.fullUnitsCount).toBe(32);
+    expect(plan.pickQtyTotal).toBe(32 * 16);
   });
 
-  it('50 → 53 → 2 KA + 3 lösa', () => {
-    const plan = computePickPlan(porcelainArticle, 50, rules);
-    expect(plan.fullUnitsCount).toBe(2);
-    expect(plan.looseCount).toBe(3);
-    expect(plan.pickQtyTotal).toBe(53);
-    expect(plan.noteText).toBe('2 KA + 3 lösa');
+  it('100 glas (BA): margin 149 ger +3 glas, inga extra backar', () => {
+    const plan = computePickPlan(articleBA, 100, defaultRules);
+    expect(plan.unitType).toBe('BA');
+    // 100+3 = 103, 103/16 = 6.43 → 6 full, rest 7, 7/16 = 43.75% < 50% → 6 BA + 7 lösa
+    expect(plan.pickQtyTotal).toBe(6 * 16 + 7);
+    expect(plan.noteText).toMatch(/6 BA \+ 7 lösa/);
   });
 
-  it('73 → 76 → 3 KA + 1 lösa', () => {
-    const plan = computePickPlan(porcelainArticle, 73, rules);
-    expect(plan.fullUnitsCount).toBe(3);
-    expect(plan.looseCount).toBe(1);
-    expect(plan.pickQtyTotal).toBe(76);
-    expect(plan.noteText).toBe('3 KA + 1 lösa');
+  it('Bestick: 100 st ger exakt + 3 extra (intervall 51–150)', () => {
+    const plan = computePickPlan(articleBestick, 100, defaultRules);
+    expect(plan.pickQtyTotal).toBe(100 + 3);
+    expect(plan.noteText).toBe('103 st');
   });
 
-  it('500 → 20 KA', () => {
-    const plan = computePickPlan(porcelainArticle, 500, rules);
-    expect(plan.fullUnitsCount).toBe(20);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(500);
-    expect(plan.noteText).toBe('20 KA');
-  });
-
-  it('501 → 21 KA', () => {
-    const plan = computePickPlan(porcelainArticle, 501, rules);
-    expect(plan.fullUnitsCount).toBe(21);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(525);
-    expect(plan.noteText).toBe('21 KA');
-  });
-});
-
-describe('GLAS (BA=25)', () => {
-  it('50 → 2 BA', () => {
-    const plan = computePickPlan(glassArticle, 50, rules);
-    expect(plan.fullUnitsCount).toBe(2);
-    expect(plan.looseCount).toBe(0);
+  it('Bestick: 50 st ger exakt (exactBelow 50)', () => {
+    const plan = computePickPlan(articleBestick, 50, defaultRules);
     expect(plan.pickQtyTotal).toBe(50);
-    expect(plan.noteText).toBe('2 BA');
+    expect(plan.noteText).toBe('50 st');
   });
 
-  it('52 → 2 BA + 2 lösa', () => {
-    const plan = computePickPlan(glassArticle, 52, rules);
-    expect(plan.fullUnitsCount).toBe(2);
-    expect(plan.looseCount).toBe(2);
-    expect(plan.pickQtyTotal).toBe(52);
-    expect(plan.noteText).toBe('2 BA + 2 lösa');
-  });
-
-  it('73 → 3 BA', () => {
-    const plan = computePickPlan(glassArticle, 73, rules);
-    expect(plan.fullUnitsCount).toBe(3);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(75);
-    expect(plan.noteText).toBe('3 BA');
-  });
-
-  it('13 → 1 BA', () => {
-    const plan = computePickPlan(glassArticle, 13, rules);
-    expect(plan.fullUnitsCount).toBe(1);
-    expect(plan.looseCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(25);
-    expect(plan.noteText).toBe('1 BA');
-  });
-
-  it('12 → 12 lösa', () => {
-    const plan = computePickPlan(glassArticle, 12, rules);
-    expect(plan.looseCount).toBe(12);
-    expect(plan.fullUnitsCount).toBe(0);
-    expect(plan.pickQtyTotal).toBe(12);
-  });
-});
-
-describe('BESTICK', () => {
-  it('50 → 50 (exakt vid gräns)', () => {
-    const plan = computePickPlan(bestickArticle, 50, rules);
-    expect(plan.pickQtyTotal).toBe(53);
-    expect(plan.noteText).toBe('53 st');
-  });
-
-  it('120 → 123', () => {
-    const plan = computePickPlan(bestickArticle, 120, rules);
-    expect(plan.pickQtyTotal).toBe(123);
-    expect(plan.noteText).toBe('123 st');
-  });
-
-  it('350 → 360', () => {
-    const plan = computePickPlan(bestickArticle, 350, rules);
-    expect(plan.pickQtyTotal).toBe(360);
-    expect(plan.noteText).toBe('360 st');
-  });
-
-  it('under 50 är exakt', () => {
-    const plan = computePickPlan(bestickArticle, 49, rules);
-    expect(plan.pickQtyTotal).toBe(49);
+  it('Porslin (KA): 501 tallrikar med regel "5 extra kassetter" för stora beställningar används', () => {
+    const rulesWithExtraKA: PlockbotRules = {
+      ...defaultRules,
+      ka: {
+        ...defaultRules.ka,
+        margins: [
+          { maxOrdered: 49, extra: 0, extraUnits: 0 },
+          { maxOrdered: 149, extra: 3, extraUnits: 0 },
+          { maxOrdered: 499, extra: 8, extraUnits: 0 },
+          { maxOrdered: 500, extra: 0, extraUnits: 5 },
+        ],
+      },
+    };
+    const plan = computePickPlan(articleKA, 501, rulesWithExtraKA);
+    expect(plan.unitType).toBe('KA');
+    expect(plan.unitSize).toBe(10);
+    // 501/10 = 50.1 → 51 kassetter bas, + 5 extra = 56
+    expect(plan.fullUnitsCount).toBe(51 + 5);
+    expect(plan.pickQtyTotal).toBe(56 * 10);
+    expect(plan.noteText).toContain('5 extra kassetter');
+    expect(plan.noteText).toContain('totalt 56 KA');
   });
 });

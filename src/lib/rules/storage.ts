@@ -73,6 +73,14 @@ export async function loadRulesFromApi(): Promise<PlockbotRules | null> {
 function mergeWithDefaults(partial: Partial<PlockbotRules>): PlockbotRules {
   const ka = { ...defaultPlockbotRules.ka, ...partial.ka };
   const ba = { ...defaultPlockbotRules.ba, ...partial.ba };
+  const defaultMargins = defaultPlockbotRules.ka.margins;
+  if (defaultMargins && (!ka.margins || ka.margins.length < defaultMargins.length)) {
+    ka.margins = defaultMargins.map((d, i) => ({ ...d, ...ka.margins?.[i] }));
+  }
+  const defaultBaMargins = defaultPlockbotRules.ba.margins;
+  if (defaultBaMargins && (!ba.margins || ba.margins.length < defaultBaMargins.length)) {
+    ba.margins = defaultBaMargins.map((d, i) => ({ ...d, ...ba.margins?.[i] }));
+  }
   if (ka.thresholds && defaultPlockbotRules.ka.thresholds) {
     ka.thresholds = ka.thresholds.map(t => {
       const def = defaultPlockbotRules.ka.thresholds!.find(d => d.quantityInCassette === t.quantityInCassette);
@@ -85,7 +93,14 @@ function mergeWithDefaults(partial: Partial<PlockbotRules>): PlockbotRules {
       return def ? { ...def, ...t } : t;
     });
   }
-  return { ka, ba, bestick: { ...defaultPlockbotRules.bestick, ...partial.bestick } };
+  const bestick = { ...defaultPlockbotRules.bestick, ...partial.bestick };
+  if (bestick.ranges?.length) {
+    bestick.ranges = bestick.ranges.map(r => ({
+      ...r,
+      maxOrdered: r.maxOrdered == null || r.maxOrdered === Infinity ? Infinity : r.maxOrdered,
+    }));
+  }
+  return { ka, ba, bestick };
 }
 
 /**

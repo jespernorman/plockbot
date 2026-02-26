@@ -864,6 +864,52 @@
   margin-top: 0.5rem;
 }
 
+.regler-margin-row-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.regler-margin-row-wrap .regler-threshold-row--multi {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.regler-row-remove {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.regler-row-remove:hover {
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive) / 0.5);
+  background: hsl(var(--destructive) / 0.06);
+}
+
+.regler-add-row {
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
+  border: 1px dashed hsl(var(--primary) / 0.4);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.regler-add-row:hover {
+  background: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary));
+}
+
 .regler-add-unit {
   margin-top: 0.5rem;
   padding: 0.4rem 0.75rem;
@@ -921,6 +967,30 @@
 .regler-threshold-row span:last-child {
   font-size: 0.8rem;
   color: hsl(var(--muted-foreground));
+}
+
+.regler-threshold-row--multi {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.5rem 1rem;
+  align-items: end;
+}
+
+.regler-threshold-row--multi label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.regler-threshold-row--multi label span {
+  min-width: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.regler-threshold-row--multi input {
+  width: 100%;
+  max-width: 6rem;
 }
 
 .regler-actions {
