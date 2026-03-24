@@ -162,8 +162,8 @@
 }
 
 .skapa-warning-box {
-  border-color: hsl(38 92% 50% / 0.6);
-  background: hsl(38 92% 50% / 0.08);
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.35);
 }
 
 .skapa-warning-box strong {
