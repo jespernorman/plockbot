@@ -202,6 +202,21 @@ export default function SkapaPlocklista() {
   };
 
   const plockOrderFile = pdfFile ?? excelFile;
+  const isInIframe = typeof window !== 'undefined' && window.parent !== window;
+
+  const handleExportToRuttbot = () => {
+    if (!orders) return;
+    const exportOrders = orders.map(o => ({
+      orderId: o.orderId,
+      deliveryAddress: o.deliveryAddress || '',
+      lines: o.lines.map(l => ({
+        articleCode: l.articleCode,
+        orderedQty: l.orderedQty,
+        noteText: l.noteText,
+      })),
+    }));
+    window.parent.postMessage({ type: 'PLOCKBOT_EXPORT', orders: exportOrders }, '*');
+  };
   const handlePlockOrderFile = (file: File | null) => {
     if (!file) {
       handlePdf(null);
@@ -481,6 +496,11 @@ export default function SkapaPlocklista() {
             <button type="button" className="skapa-download-secondary" onClick={handleDownload}>
               Ladda ner PDF
             </button>
+            {isInIframe && (
+              <button type="button" className="skapa-download-secondary skapa-export-ruttbot" onClick={handleExportToRuttbot}>
+                Exportera till Ruttbot →
+              </button>
+            )}
           </div>
         </section>
 

@@ -313,6 +313,10 @@
   padding-top: 0.75rem;
   border-top: 1px solid hsl(var(--border) / 0.8);
   text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 .skapa-download-secondary {
@@ -331,6 +335,18 @@
   background: hsl(var(--primary) / 0.18);
   color: hsl(var(--primary-foreground));
   border-color: hsl(var(--primary));
+}
+
+.skapa-export-ruttbot {
+  color: hsl(142 72% 29%);
+  background: hsl(142 72% 29% / 0.1);
+  border-color: hsl(142 72% 29% / 0.4);
+}
+
+.skapa-export-ruttbot:hover {
+  background: hsl(142 72% 29% / 0.18);
+  color: hsl(0 0% 100%);
+  border-color: hsl(142 72% 29%);
 }
 
 /* Legacy primary button (kept for consistency) */
